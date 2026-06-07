@@ -22,7 +22,7 @@ This allows the optimization methodology to be analyzed separately from the spec
 
 In addition to extending the benchmark with DAv3c, this project also investigates how structural graph properties influence solver behavior. The original benchmark primarily analyzed solver performance across graph size and density categories. In this work, we additionally explore how other structural properties affect solver performance across different graph families.
 
-> 📄 The complete project report and analysis are available in the [reports/](reports/) directory.
+> 📄 The complete project report and analysis are available in the [report/](report/) directory.
 
 ---
 
