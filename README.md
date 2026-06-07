@@ -35,12 +35,12 @@ The original benchmark data comparing DAv2, DAv3, and MQLib heuristics is includ
 The benchmark contains instance-specific objective values and runtime limits for all evaluated solvers.
 
 ### 2. DAv3c Experimental Results
-The DAv3c experimental results generated in this project are stored in: [data/raw/DAv3c](Dav3c/) directory
+The DAv3c experimental results generated in this project are stored in: [data/raw/DAv3c](data/raw/DAv3c/) directory
 
 The experiments follow the same benchmark setup and instance-specific runtime limits used in the original benchmark study.
 
 ### 3. Structural Graph Metrics
-This repository also contains precomputed structural graph metrics for all benchmark instances. The processed structural metrics dataset is stored in: [data/processed/graph_metrics.csv](GRAPH PROPERTIES)
+This repository also contains precomputed structural graph metrics for all benchmark instances. The processed structural metrics dataset is stored in: [data/processed/graph_metrics.csv](data/processed/graph_metrics.csv)(GRAPH PROPERTIES)
 
 The computed graph properties include:
 * Negative weight fraction
@@ -73,7 +73,7 @@ For each instance, the dataset additionally records:
 1. **DAv3c Solver Benchmark Extension**  
    We compare DAv3c against DAv2, DAv3, and selected MQLib heuristics across the benchmark dataset.
 2. **Structural Graph Analysis**  
-   We analyze how graph structures influenced by odd-cycle behavior affect solver performance[cite: 1]. The structural analyses include:
+   We analyze how graph structures influenced by odd-cycle behavior affect solver performance. The structural analyses include:
    * Bipartite graphs
    * Triangle-free graphs
    * Non-bipartite triangle-rich graphs
