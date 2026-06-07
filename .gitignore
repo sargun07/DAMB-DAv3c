@@ -1,0 +1,7 @@
+data.zip
+dav3c-venv/
+venv/
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
