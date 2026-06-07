@@ -133,27 +133,30 @@ The DAv3c experiments were executed on the following system configuration:
 ```bash
 git clone https://github.com/sargun07/DAMB-DAv3c.git
 cd DAMB-DAv3c
+```
 
 #### 2. Create an environment
 ```bash
 python -m venv venv
 source venv/bin/activate
+```
 
 #### 3. Install dependencies
 ```bash
 pip install -r requirements.txt
+```
 
 #### 4. Repository Data
 The repository already comes pre-packaged with the necessary data files:
-*Original benchmark datasets
-*DAv3c experimental outputs
-*Processed datasets
-*Structural graph metrics
+* Original benchmark datasets
+* DAv3c experimental outputs
+* Processed datasets
+* Structural graph metrics
 
 
 The main consolidated datasets are available at:
-*data/processed/baseline_dataset.csv
-*data/processed/graph_metrics.csv
+* data/processed/baseline_dataset.csv
+* data/processed/graph_metrics.csv
 
 #### 5. Run the Analysis
 Analysis Notebooks: Located in the notebooks/ directory. These can be executed directly using Jupyter Notebook or JupyterLab.
