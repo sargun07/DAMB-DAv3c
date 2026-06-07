@@ -108,7 +108,7 @@ For each instance, the dataset additionally records:
 │   └── figures/               # Generated charts and visualizations
 ├── reports/
 │   └── report.pdf             # Complete project report and analysis
-├── notebooks/                 # Jupyter notebooks for EDA and analyses
+├── notebooks/                 # Jupyter notebooks 
 ├── src/       
 └── requirement.txt             
 ```
