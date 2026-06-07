@@ -71,20 +71,20 @@ For each instance, the dataset additionally records:
 ## Analyses Performed
 
 1. **DAv3c Solver Benchmark Extension**  
-   We compare DAv3c against DAv2, DAv3, and selected MQLib heuristics across the benchmark dataset[cite: 1].
+   We compare DAv3c against DAv2, DAv3, and selected MQLib heuristics across the benchmark dataset.
 2. **Structural Graph Analysis**  
    We analyze how graph structures influenced by odd-cycle behavior affect solver performance[cite: 1]. The structural analyses include:
-   * Bipartite graphs[cite: 1]
-   * Triangle-free graphs[cite: 1]
-   * Non-bipartite triangle-rich graphs[cite: 1]
+   * Bipartite graphs
+   * Triangle-free graphs
+   * Non-bipartite triangle-rich graphs
 3. **Edge-Weight Representation Analysis**  
    We analyze solver behavior separately for:
-   * Integer-weighted instances[cite: 1]
-   * Floating-point-weighted instances[cite: 1]
+   * Integer-weighted instances
+   * Floating-point-weighted instances
 4. **Unique Edge-Weight Dominance Analysis**  
-   For integer-weighted instances, we further analyze how repeated and dominant edge-weight distributions influence solver performance[cite: 1].
+   For integer-weighted instances, we further analyze how repeated and dominant edge-weight distributions influence solver performance.
 5. **Bipartite Optimality Analysis**  
-   We analyze solver optimality behavior on bipartite non-negative benchmark instances, where the Max-Cut optimum is theoretically attainable[cite: 1].
+   We analyze solver optimality behavior on bipartite non-negative benchmark instances, where the Max-Cut optimum is theoretically attainable.
 
 ---
 
