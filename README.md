@@ -35,12 +35,12 @@ The original benchmark data comparing DAv2, DAv3, and MQLib heuristics is includ
 The benchmark contains instance-specific objective values and runtime limits for all evaluated solvers.
 
 ### 2. DAv3c Experimental Results
-The DAv3c experimental results generated in this project are stored in: [data/raw/dav3c](data/raw/dav3c/) directory
+The DAv3c experimental results generated in this project are stored in: [data/raw/dav3c] directory
 
 The experiments follow the same benchmark setup and instance-specific runtime limits used in the original benchmark study.
 
 ### 3. Structural Graph Metrics
-This repository also contains precomputed structural graph metrics for all benchmark instances. The processed structural metrics dataset is stored in: [data/processed/graph_metrics.csv](data/processed/graph_metrics.csv)(GRAPH PROPERTIES)
+This repository also contains precomputed structural graph metrics for all benchmark instances. The processed structural metrics dataset is stored in: [data/processed/graph_metrics.csv]
 
 The computed graph properties include:
 * Negative weight fraction
