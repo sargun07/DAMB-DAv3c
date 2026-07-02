@@ -124,7 +124,7 @@ The DAv3c experiments were executed on the following system configuration:
 * **Python Version:** 3.11.7
 
 > **Note:** DAv3c was evaluated as the CPU-based software implementation of the Digital Annealer framework.
-
+```
 ---
 
 ### Running the Repository
