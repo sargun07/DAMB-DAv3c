@@ -663,6 +663,9 @@ def plot_boxplot(
         vert=True
     )
 
+    ax.set_xticks([])
+    ax.set_xlabel("")
+
     ax.set_ylabel(ylabel)
 
     if title:
