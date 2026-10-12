@@ -69,10 +69,3 @@ The following tests compare each DA variant with its **category-specific MQLib h
 | DAv3c | Non-integer | 435 | 6.43 × 10⁻¹ | 0.022 | Not significant |
 
 **Takeaway:** DAv2 and DAv3 show significant paired differences from their heuristic baselines in both weight subsets; DAv3c does not. This supports the observed performance differences of the hardware-based variants **within** each subset, but does not test whether integer and non-integer weights cause different solver behavior.
-
-## Checks before publication
-
-1. **Sample-size inconsistency:** The common medium/large subset has been described as 349 integer-weighted and 389 non-integer-weighted instances, yet the DAv3c non-integer test reports **n = 435**. Verify whether this test uses a different population, whether *n* denotes something else, or whether the value is a transcription error. Do not change it without checking the originating notebook.
-2. **Meaning of n:** Some Wilcoxon counts differ between comparisons, possibly because zero-difference pairs are excluded or because comparison subsets differ. Confirm how the notebook computes the reported *n* and document this consistently.
-3. **Multiple-testing corrections and zero handling:** Confirm the Wilcoxon alternative, zero-handling option, meaning/formula of effect size *r*, and whether reported *p*-values are adjusted.
-4. **Notebook link:** Confirm the exact notebook containing the edge-weight tests and update its reference above if different.
