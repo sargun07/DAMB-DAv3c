@@ -56,7 +56,7 @@ Extract the archive:
 7zz x data.7z
 ```
 
-This restores the `data/` directory containing benchmark data, processed datasets, and experimental outputs.
+This restores the `data/` directory containing benchmark data, processed datasets, and experimental outputs. However, data/processed/metrics.csv is not included in the archive and must be generated separately using notebooks/05_a_edge_weight_analysis.ipynb, as described in Section 4.
 
 
 ### 3. Download the MQLib instances
@@ -95,7 +95,7 @@ The original Digital Annealer benchmark reports using MQLib commit `686a4fc`. Wh
 
 ### 4. Generate `data/processed/metrics.csv`
 
-**`metrics.csv` is intentionally omitted from the repository.** It contains graph metrics generated from the MQLib instances by the project's notebook code. Its generation can take considerable time, depending on machine specifications and the selected graph set.
+**`data/processed/metrics.csv` is not included in either the GitHub repository or the data.7z archive. This file contains graph metrics computed from the original MQLib instances and can be reproduced by executing notebooks/05_a_edge_weight_analysis.ipynb. Depending on the machine specifications and number of graph instances, generating these metrics may take considerable time.
 
 1. Ensure the graph files are available in `data/raw/mqlib_instances/`.
 2. Create `data/processed/` if it does not already exist.
@@ -180,7 +180,7 @@ Install dependencies using the dependency file **actually present in the reposit
 pip install -r requirements.txt
 ```
 
-Run the notebooks in `notebooks/` in dependency order: download the source graphs, generate the required metrics and other processed data, and then run the analytical notebooks. A notebook requiring `data/processed/metrics.csv` cannot run successfully until that file has been generated or extracted from a separately supplied archive.
+Run the notebooks in `notebooks/` in dependency order: download the source graphs, generate the required metrics and other processed data, and then run the analytical notebooks. Notebooks requiring `data/processed/metrics.csv` must be executed only after the file has been generated using 05_a_edge_weight_analysis.ipynb.
 
 ## Data provenance and citation
 
