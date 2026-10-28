@@ -32,8 +32,34 @@ Other benchmark results and metadata are distinct from the MQLib graph files. Se
 git clone https://github.com/sargun07/DAMB-DAv3c.git
 cd DAMB-DAv3c
 ```
+### 2. Extract `data.7z`
 
-### 2. Download the MQLib instances
+Download `data.7z` and place it in the repository root if it is not already included.
+
+Install 7-Zip if necessary:
+
+**macOS:**
+
+```bash
+brew install sevenzip
+```
+
+**Ubuntu/Linux:**
+
+```bash
+sudo apt install 7zip
+```
+
+Extract the archive:
+
+```bash
+7zz x data.7z
+```
+
+This restores the `data/` directory containing benchmark data, processed datasets, and experimental outputs.
+
+
+### 3. Download the MQLib instances
 
 The original MQLib project supplies graph-download scripts and instructions. Start with the [MQLib repository](https://github.com/MQLib/MQLib) and its [download documentation](https://github.com/MQLib/MQLib/tree/master/scripts).
 
@@ -67,7 +93,7 @@ mkdir -p data/raw/mqlib_instances
 
 The original Digital Annealer benchmark reports using MQLib commit `686a4fc`. When reproducibility requires matching the historical graph collection, use the instance identifiers in the analysis data to verify that the required graphs were downloaded.
 
-### 3. Generate `data/processed/metrics.csv`
+### 4. Generate `data/processed/metrics.csv`
 
 **`metrics.csv` is intentionally omitted from the repository.** It contains graph metrics generated from the MQLib instances by the project's notebook code. Its generation can take considerable time, depending on machine specifications and the selected graph set.
 
