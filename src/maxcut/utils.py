@@ -273,149 +273,186 @@ def compute_cut_ratio_counts(
         "ratio_one_count": int((df["ratio"] == 1.0).sum()),
     }
 
-def run_wilcoxon(df, col_a, col_b, label):
-    # Paired differences
-    diff = df[col_a] - df[col_b]
-    
-    # Remove NaNs
-    diff = diff.dropna()
-    
-    # Remove zero differences (ties)
-    diff = diff[diff != 0]
-    
-    print(f"\n=== {label} ===")
-    print(f"Samples used: {len(diff)}")
-    
-    if len(diff) == 0:
-        print("No valid samples after removing ties.")
-        return
-    
-    # Wilcoxon test
-    stat, p_value = wilcoxon(diff, alternative='two-sided')
-    
-    # Effect size (rank-biserial correlation)
+
+def run_wilcoxon(df, col_a, col_b, label, eps=1e-9):
+    diff = (df[col_a] - df[col_b]).dropna()
+
+    n_total = len(diff)
+    n_ties = int((diff.abs() <= eps).sum())
+
+    # Remove numerical ties
+    diff = diff[diff.abs() > eps]
     n = len(diff)
-    z = (stat - (n*(n+1)/4)) / np.sqrt(n*(n+1)*(2*n+1)/24)
-    r = abs(z) / np.sqrt(n)
-    
+
+    print(f"\n=== {label} ===")
+    print(f"Total paired samples: {n_total}")
+    print(f"Numerical ties: {n_ties}")
+    print(f"Samples used: {n}")
+
+    if n == 0:
+        print("No nonzero differences available.")
+        return None
+
+    stat, p_value = wilcoxon(
+        diff.to_numpy(),
+        alternative="two-sided",
+        zero_method="wilcox",
+        method="auto",
+    )
+
+    # Signed rank-biserial correlation
+    values = diff.to_numpy()
+    ranks = rankdata(np.abs(values))
+
+    w_plus = ranks[values > 0].sum()
+    w_minus = ranks[values < 0].sum()
+
+    r_rb = (w_plus - w_minus) / (w_plus + w_minus)
+
     print(f"Wilcoxon statistic: {stat}")
     print(f"p-value: {p_value:.4e}")
-    print(f"Effect size (r): {r:.4f}")
-    
-    # Interpretation
-    if p_value < 0.05:
-        print("Result: Statistically significant")
-    else:
-        print("Result: Not statistically significant")
+    print(f"Rank-biserial correlation: {r_rb:+.4f}")
+    print(f"Median difference: {np.median(values):.6g}")
 
-def wilcoxon_by_category(df, col_a, col_b, category_col="category"):
+    if p_value < 0.05:
+        print("Result: Statistically significant (unadjusted)")
+    else:
+        print("Result: Not statistically significant (unadjusted)")
+
+    return {
+        "n_total": n_total,
+        "n_nonzero": n,
+        "n_ties": n_ties,
+        "stat": stat,
+        "p_raw": p_value,
+        "r_rb": r_rb,
+    }
+
+
+
+import numpy as np
+import pandas as pd
+
+from scipy.stats import wilcoxon, rankdata
+from statsmodels.stats.multitest import multipletests
+
+
+def wilcoxon_by_category(
+    df,
+    col_a,
+    col_b,
+    category_col="category",
+    eps=1e-9,
+    alpha=0.05,
+    min_n=10,
+):
     results = []
 
     for cat in sorted(df[category_col].dropna().unique()):
         sub = df[df[category_col] == cat]
-        
-        diff = sub[col_a] - sub[col_b]
-        diff = diff.dropna()
-        diff = diff[diff != 0]  # remove ties
-        
+
+        # Paired objective differences
+        diff = (sub[col_a] - sub[col_b]).dropna()
+
+        n_total = len(diff)
+
+        # Consistent numerical equality policy
+        n_ties = int((diff.abs() <= eps).sum())
+        diff = diff[diff.abs() > eps]
+
         n = len(diff)
-        
-        if n < 10:  # avoid unreliable small samples
-            results.append((cat, n, None, None, None, "Too small"))
+
+        row = {
+            "category": cat,
+            "n_total": n_total,
+            "n_nonzero": n,
+            "n_ties": n_ties,
+            "stat": np.nan,
+            "p_raw": np.nan,
+            "p_holm": np.nan,
+            "r_rb": np.nan,
+            "median_diff": np.nan,
+            "status": "Too small",
+        }
+
+        if n < min_n:
+            results.append(row)
             continue
-        
-        stat, p = wilcoxon(diff,alternative="two-sided")
-        
-        # Effect size (r)
-        z = (stat - (n*(n+1)/4)) / np.sqrt(n*(n+1)*(2*n+1)/24)
-        r = abs(z) / np.sqrt(n)
-        
-        results.append((cat, n, stat, p, r,
-                        "Significant" if p < 0.05 else "Not significant"))
 
-    return results
+        # Two-sided Wilcoxon signed-rank test
+        stat, p = wilcoxon(
+            diff.to_numpy(),
+            alternative="two-sided",
+            zero_method="wilcox",
+            method="auto",
+        )
 
-def run_wilcoxon_multiple_dfs(
-    comparisons,
-    group_col=None,
-    min_n=1,
-    alpha=0.05,
-    remove_ties=True,
-):
-    results = []
+        # Matched-pairs rank-biserial correlation
+        ranks = rankdata(diff.abs().to_numpy())
 
-    for comp in comparisons:
+        w_plus = ranks[diff.to_numpy() > 0].sum()
+        w_minus = ranks[diff.to_numpy() < 0].sum()
 
-        df = comp["df"]
-        solver_col = comp["solver_col"]
-        baseline_col = comp["baseline_col"]
-        comparison_label = comp["label"]
+        r_rb = (w_plus - w_minus) / (w_plus + w_minus)
 
-        if group_col is None:
-            groups = [("all", df)]
-        else:
-            groups = [
-                (group, df[df[group_col] == group])
-                for group in sorted(df[group_col].dropna().unique())
-            ]
+        row.update({
+            "stat": stat,
+            "p_raw": p,
+            "r_rb": r_rb,
+            "median_diff": diff.median(),
+            "status": "Pending correction",
+        })
 
-        for group_name, subset in groups:
+        results.append(row)
 
-            diff = subset[solver_col] - subset[baseline_col]
-            diff = diff.dropna()
+    results_df = pd.DataFrame(results)
 
-            if remove_ties:
-                diff = diff[diff != 0]
+    # Holm correction across all tested categories
+    valid = results_df["p_raw"].notna()
 
-            n = len(diff)
+    if valid.any():
+        reject, p_adjusted, _, _ = multipletests(
+            results_df.loc[valid, "p_raw"].to_numpy(),
+            alpha=alpha,
+            method="holm",
+        )
 
-            if n < min_n:
-                results.append({
-                    "comparison": comparison_label,
-                    "group": group_name,
-                    "n": n,
-                    "wilcoxon_stat": np.nan,
-                    "p_value": np.nan,
-                    "effect_size_r": np.nan,
-                    "median_difference": np.nan,
-                    "mean_difference": np.nan,
-                    "significant": False,
-                    "status": "Too small",
-                })
-                continue
+        results_df.loc[valid, "p_holm"] = p_adjusted
 
-            stat, p_value = wilcoxon(diff, alternative="two-sided")
+        results_df.loc[valid, "status"] = np.where(
+            reject,
+            "Significant",
+            "Not significant",
+        )
 
-            z = (
-                stat - (n * (n + 1) / 4)
-            ) / np.sqrt(
-                n * (n + 1) * (2 * n + 1) / 24
-            )
+    return results_df
 
-            r = abs(z) / np.sqrt(n)
 
-            results.append({
-                "comparison": comparison_label,
-                "group": group_name,
-                "n": n,
-                "wilcoxon_stat": stat,
-                "p_value": p_value,
-                "effect_size_r": r,
-                "median_difference": np.median(diff),
-                "mean_difference": np.mean(diff),
-                "significant": p_value < alpha,
-                "status": "Significant" if p_value < alpha else "Not significant",
-            })
 
-    return pd.DataFrame(results)
 
 def print_wilcoxon_Pairwise_results(results, title):
     print(f"\n=== {title} ===")
-    for cat, n, stat, p, r, status in results:
-        if p is None:
-            print(f"{cat:20s} | n={n:3d} | Skipped ({status})")
+
+    for _, row in results.iterrows():
+        cat = str(row["category"])
+        n = int(row["n_nonzero"])
+        ties = int(row["n_ties"])
+
+        if pd.isna(row["p_raw"]):
+            print(
+                f"{cat:20s} | "
+                f"n={n:3d} | ties={ties:3d} | "
+                f"Skipped ({row['status']})"
+            )
         else:
-            print(f"{cat:20s} | n={n:3d} | p={p:.2e} | r={r:.3f} | {status}")
+            print(
+                f"{cat:20s} | "
+                f"n={n:3d} | ties={ties:3d} | "
+                f"p_raw={row['p_raw']:.4e} | "
+                f"p_holm={row['p_holm']:.4e} | "
+                f"r_rb={row['r_rb']:+.3f} | "
+                f"{row['status']}"
+            )
 
 
 def make_weighttype_wtl_summary(df, solver_name):
@@ -565,6 +602,7 @@ def compare_structure_metric(
         structure_groups = [
             "non_bipartite_with_triangles",
             "non_bipartite_triangle_free",
+            'bipartite'
         ]
 
     rows = []
@@ -699,7 +737,7 @@ def pairwise_win_tie_loss_by_weight_category(
     df,
     solver_a,
     solver_b,
-    category_col="weight_frequency_category",
+    category_col="concentration_group",
     eps=1e-9
 ):
     results = []
