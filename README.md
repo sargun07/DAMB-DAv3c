@@ -1,163 +1,168 @@
 # DA Benchmark Extension with DAv3c and Structural Graph Analysis
 
 ## Overview
-This repository contains the implementation, datasets, analysis scripts, and experimental results for our Max-Cut benchmark extension project. 
 
-The project extends the benchmark study introduced in:
-* **[A comprehensive benchmark of an Ising machine on the Max-Cut problem](https://arxiv.org/pdf/2507.22117)**
+This repository contains code, analysis notebooks, and experimental results for an extension of a Max-Cut benchmark. It investigates the CPU-based Digital Annealer configuration **DAv3c** alongside previously reported results for the hardware-based **DAv2** and **DAv3** systems and selected **MQLib** heuristics.
 
-The original benchmark compared Digital Annealer solvers (DAv2 and DAv3) against state-of-the-art MQLib heuristics and showed highly competitive performance of the DA framework on large Max-Cut benchmark instances. The MQLib heuristics used in the original benchmark are based on:
-* **[MQLib: A collection of Max-Cut and QUBO heuristics.](https://github.com/MQLib/MQLib)**
+This project builds on:
 
-### Research Objective
-However, it remains unclear whether the strong performance observed in DAv2 and DAv3 primarily originates from:
-1. The underlying optimization algorithm, or
-2. The specialized Digital Annealer hardware acceleration.
+- [*A comprehensive benchmark of an Ising machine on the Max-Cut problem*](https://arxiv.org/pdf/2507.22117), which benchmarks Digital Annealer solvers and MQLib heuristics.
+- [MQLib](https://github.com/MQLib/MQLib), the original library of Max-Cut and QUBO instances and heuristic implementations.
 
-To investigate this, this project extends the benchmark by incorporating **DAv3c**, the CPU-based software implementation of DAv3. DAv3c includes mechanisms such as:
-* Parallel tempering
-* Tabu Search
+### Research objective
 
-This allows the optimization methodology to be analyzed separately from the specialized hardware platform.
+DAv3 and DAv3c share a broad optimization framework combining parallel tempering and tabu search, but differ in their execution platforms and potentially in implementation details. We compare their observed solution quality with DAv2 and selected MQLib heuristics. **These comparisons do not isolate the contribution of specialized hardware from algorithmic and implementation differences.**
 
-In addition to extending the benchmark with DAv3c, this project also investigates how structural graph properties influence solver behavior. The original benchmark primarily analyzed solver performance across graph size and density categories. In this work, we additionally explore how other structural properties affect solver performance across different graph families.
+We also study performance differences associated with graph structure and edge-weight characteristics beyond the size and density categories considered in the original benchmark.
 
-> 📄 The complete project report and analysis are available in the [report/](report/) directory.
+The project report and related material are located in [`reports/`](reports/) where available.
 
----
+## Data availability and required setup
 
-## Repository Contents
+**Large input data are not included in this GitHub repository.** In particular:
 
-### 1. DAv2, DAv3, and MQLib Benchmark Data
-The original benchmark data comparing DAv2, DAv3, and MQLib heuristics is included in this repository and obtained from:
-* **[DA Maxcut Benchmark (DAMB)](https://github.com/SalwaShaglel/DAMB)**
+1. **MQLib graph instances** must be obtained from the [original MQLib source](https://github.com/MQLib/MQLib) and placed in `data/raw/mqlib_instances/`.
+2. **`data/processed/metrics.csv`** is not included because it is large and time-consuming to generate. The metric-generation code is provided in this project's notebooks; run that code to reproduce the file before executing notebooks that depend on it.
 
-The benchmark contains instance-specific objective values and runtime limits for all evaluated solvers.
+Other benchmark results and metadata are distinct from the MQLib graph files. See the relevant notebook input paths and the original [DA Maxcut Benchmark (DAMB)](https://github.com/SalwaShaglel/DAMB) repository for the provenance of reused hardware and heuristic results. **This README does not currently claim a downloadable full-data ZIP or a published Zenodo DOI.**
 
-### 2. DAv3c Experimental Results
-The DAv3c experimental results generated in this project are stored in: [data/raw/dav3c] directory
+### 1. Clone this repository
 
-The experiments follow the same benchmark setup and instance-specific runtime limits used in the original benchmark study.
-
-### 3. Structural Graph Metrics
-This repository also contains precomputed structural graph metrics for all benchmark instances. The processed structural metrics dataset is stored in: [data/processed/graph_metrics.csv]
-
-The computed graph properties include:
-* Negative weight fraction
-* Triangle count
-* Transitivity
-* Average clustering coefficient
-* Cyclomatic number
-* Bridge count
-* Bridge fraction
-* Unique edge-weight statistics
-
-### 4. Baseline Dataset
-The repository contains a consolidated baseline dataset containing all evaluated instances and solver outputs. The baseline dataset is available in:
-* `data/processed/baseline_dataset.csv`
-
-The baseline dataset includes:
-* Objective values from all solvers
-* Graph metadata
-* Runtime information
-* Structural graph properties
-
-For each instance, the dataset additionally records:
-* The maximum objective value obtained across all evaluated solvers
-* The solver(s) that achieved that value
-
----
-
-## Analyses Performed
-
-1. **DAv3c Solver Benchmark Extension**  
-   We compare DAv3c against DAv2, DAv3, and selected MQLib heuristics across the benchmark dataset.
-2. **Structural Graph Analysis**  
-   We analyze how graph structures influenced by odd-cycle behavior affect solver performance. The structural analyses include:
-   * Bipartite graphs
-   * Triangle-free graphs
-   * Non-bipartite triangle-rich graphs
-3. **Edge-Weight Representation Analysis**  
-   We analyze solver behavior separately for:
-   * Integer-weighted instances
-   * Floating-point-weighted instances
-4. **Unique Edge-Weight Dominance Analysis**  
-   For integer-weighted instances, we further analyze how repeated and dominant edge-weight distributions influence solver performance.
-5. **Bipartite Optimality Analysis**  
-   We analyze solver optimality behavior on bipartite non-negative benchmark instances, where the Max-Cut optimum is theoretically attainable.
-
----
-
-## Repository Structure
-
-```text
-.
-├── data/
-│   ├── raw/
-│   │   ├── dav3c/                 # DAv3c experimental outputs
-│   │   ├── benchmark/             # Original benchmark datasets
-│   ├──  processed/
-│   │    ├── baseline_dataset.csv   # Master benchmark data with maximum objective value for each instances per for all solvers with graph properties
-│   │    ├── baseline_enriched.csv  # Master benchmark data without graph properties
-│   │    ├── final_dataset.parquet  # Consolidated master dataset with maxcut values of all the solvers & for all runs
-│   │    ├── graph_metrics.csv      # Computed topological structural metrics
-│   │    └── graph_uweight_dominance.csv  # Computed repeating weight dominance over the edges
-│   ├──  metadata/
-│   │    └── baseline.csv            # Dataset containing time limit for each instance
-├── results/
-│   └── figures/               # Generated charts and visualizations
-├── reports/
-│   └── report.pdf             # Complete project report and analysis
-├── notebooks/                 # Jupyter notebooks 
-├── src/       
-└── requirement.txt             
-```
-## Reproducibility
-
-### Experimental Environment
-The DAv3c experiments were executed on the following system configuration:
-
-* **CPU:** AMD EPYC 9275F 24-Core Processor
-* **Logical CPUs:** 48
-* **RAM:** 754 GiB
-* **Operating System:** Red Hat Enterprise Linux 9.4
-* **Python Version:** 3.11.7
-
-> **Note:** DAv3c was evaluated as the CPU-based software implementation of the Digital Annealer framework.
-```
----
-
-### Running the Repository
-
-#### 1. Clone the Repository
 ```bash
 git clone https://github.com/sargun07/DAMB-DAv3c.git
 cd DAMB-DAv3c
 ```
 
-#### 2. Create an environment
+### 2. Download the MQLib instances
+
+The original MQLib project supplies graph-download scripts and instructions. Start with the [MQLib repository](https://github.com/MQLib/MQLib) and its [download documentation](https://github.com/MQLib/MQLib/tree/master/scripts).
+
+For example, the original repository documents a graph-download script (check its instructions and Python dependencies before running):
+
 ```bash
-python -m venv venv
+git clone https://github.com/MQLib/MQLib.git
+cd MQLib
+python scripts/downloadAllGraphs.py instances
+```
+
+After downloading and, if necessary, extracting the graphs, **copy the actual instance files** into this project's directory:
+
+```text
+DAMB-DAv3c/
+└── data/
+    └── raw/
+        └── mqlib_instances/
+            ├── <MQLib instance file 1>
+            ├── <MQLib instance file 2>
+            └── ...
+```
+
+The directory name must be exactly **`mqlib_instances`**, located directly under **`data/raw/`**. Do not place an additional `MQLib/` or `instances/` directory between `mqlib_instances/` and the graph files unless an individual notebook explicitly expects that structure.
+
+You can create the destination directory with:
+
+```bash
+mkdir -p data/raw/mqlib_instances
+```
+
+The original Digital Annealer benchmark reports using MQLib commit `686a4fc`. When reproducibility requires matching the historical graph collection, use the instance identifiers in the analysis data to verify that the required graphs were downloaded.
+
+### 3. Generate `data/processed/metrics.csv`
+
+**`metrics.csv` is intentionally omitted from the repository.** It contains graph metrics generated from the MQLib instances by the project's notebook code. Its generation can take considerable time, depending on machine specifications and the selected graph set.
+
+1. Ensure the graph files are available in `data/raw/mqlib_instances/`.
+2. Create `data/processed/` if it does not already exist.
+3. Execute the **05_a_edge_weight_analysis.ipynb** supplied in `notebooks/`.
+4. Confirm that its output is saved as **`data/processed/metrics.csv`** before running analyses that load that file.
+
+### Expected directory layout
+
+### Repository Structure
+
+```text
+DAMB-DAv3c/
+├── README.md
+├── requirements.txt
+├── statistical_tests.md          # Detailed statistical test results
+│
+├── data/                         # Benchmark datasets and experimental results
+│   ├── metadata/                 # Benchmark metadata
+│   ├── processed/                # Processed datasets used in the analyses
+│   └── raw/
+│       ├── benchmark/            # Previously reported benchmark results
+│       ├── dav3c_runs/           # DAv3c experimental outputs
+│       └── dav3c_logs/           # DAv3c execution logs
+│
+├── notebooks/                    # Data preparation and analysis notebooks
+│   ├── 00_prepare_benchmark_dataset.ipynb
+│   ├── 01_a_build_dataset.ipynb
+│   ├── 01_b_runtime_audit.ipynb
+│   ├── 02_compute_graph_properties.ipynb
+│   ├── 03_build_baseline_dataset.ipynb
+│   ├── 04_dav3c_cv_runtime_analysis.ipynb
+│   ├── 05_a_edge_weight_analysis.ipynb
+│   ├── 05_b_edge_weight_analysis.ipynb
+│   ├── 05_c_edge_weight_analysis.ipynb
+│   ├── 06_pairwise_solver_comparison.ipynb
+│   ├── 07_structural_graph_analysis.ipynb
+│   └── 08_bipartite_optimality_analysis.ipynb
+│
+├── src/maxcut/                   # Shared Python modules
+│   ├── config.py
+│   ├── utils.py
+│   └── plotting.py
+│
+├── results/figures/              # Generated figures from the analyses
+│
+├── report/                       # Research report
+
+## Repository contents and analyses
+
+- **Benchmark comparison:** DAv3c results versus DAv2, DAv3, and selected MQLib heuristics across size--density categories.
+- **Structural graph analysis:** bipartite, non-bipartite with triangles, and non-bipartite triangle-free instances.
+- **Edge-weight representation:** integer versus non-integer weights.
+- **Edge-weight concentration:** repeated and diverse integer edge-weight values.
+- **Known-optimum analysis:** recovery of analytically known Max-Cut optima for bipartite graphs with non-negative edge weights.
+
+Where the relevant processed datasets have been generated, they combine instance identifiers, graph properties, solver objectives, and/or runtime information. The authoritative inputs and outputs for each analysis are the paths specified in its notebook.
+
+## Reproducibility
+
+### DAv3c experimental environment
+
+The DAv3c experiments used:
+
+- **CPU:** AMD EPYC 9275F 24-Core Processor
+- **Logical CPUs:** 48
+- **RAM:** 754 GiB
+- **Operating system:** Red Hat Enterprise Linux 9.4
+- **Python:** 3.11.7
+
+### Run the analyses
+
+Create and activate a Python virtual environment:
+
+```bash
+python3 -m venv venv
 source venv/bin/activate
 ```
 
-#### 3. Install dependencies
+Install dependencies using the dependency file **actually present in the repository** (for example, `requirements.txt` or `requirement.txt`):
+
 ```bash
 pip install -r requirements.txt
 ```
 
-#### 4. Repository Data
-The repository already comes pre-packaged with the necessary data files:
-* Original benchmark datasets
-* DAv3c experimental outputs
-* Processed datasets
-* Structural graph metrics
+Run the notebooks in `notebooks/` in dependency order: download the source graphs, generate the required metrics and other processed data, and then run the analytical notebooks. A notebook requiring `data/processed/metrics.csv` cannot run successfully until that file has been generated or extracted from a separately supplied archive.
 
+## Data provenance and citation
 
-The main consolidated datasets are available at:
-* data/processed/baseline_dataset.csv
-* data/processed/graph_metrics.csv
+**MQLib instances and heuristic implementations:**
 
-#### 5. Run the Analysis
-Analysis Notebooks: Located in the notebooks/ directory. These can be executed directly using Jupyter Notebook or JupyterLab.
-Core Utilities: Core analysis utilities and plotting functions are structured inside the src/ directory.
+Dunning, I., Gupta, S., and Silberholz, J. (2018). *What Works Best When? A Systematic Evaluation of Heuristics for Max-Cut and QUBO.* INFORMS Journal on Computing, 30(3), 608--624. [MQLib repository](https://github.com/MQLib/MQLib).
+
+**Previously reported Digital Annealer and heuristic benchmark results:**
+
+[*A comprehensive benchmark of an Ising machine on the Max-Cut problem*](https://arxiv.org/pdf/2507.22117). [DAMB repository](https://github.com/SalwaShaglel/DAMB).
+
