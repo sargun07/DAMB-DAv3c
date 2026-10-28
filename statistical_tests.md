@@ -1,6 +1,6 @@
 # Statistical Significance Tests — Max-Cut Benchmark
 
-This document reports the paired Wilcoxon signed-rank tests from [`06_pairwise_solver_comparison.ipynb`](notebooks/06_pairwise_solver_comparison.ipynb). Results correspond to the updated notebook analysis using an absolute numerical tie tolerance of `1e-9`.
+This document reports the paired Wilcoxon signed-rank tests from [`06_pairwise_solver_comparison.ipynb`](notebooks/06_pairwise_solver_comparison.ipynb). Results correspond to the notebook analysis using an absolute numerical tie tolerance of `1e-9`.
 
 ## Method and interpretation
 
@@ -76,4 +76,3 @@ The same **738 instances** are used for each DA solver: **349 integer-weighted**
 - Numerical ties are excluded from the Wilcoxon test. Therefore `n = N - Ties` in each table.
 - Two-sided Wilcoxon tests are run using SciPy, with Holm adjustment using `statsmodels.stats.multitest.multipletests(method="holm")`.
 - The rank-biserial effect is calculated from positive and negative signed-rank sums after excluding numerical ties: `r_rb = (W_plus - W_minus) / (W_plus + W_minus)`.
-- This document reports the updated analysis; it supersedes earlier unadjusted-p-value tables and unsigned effect-size reports.
