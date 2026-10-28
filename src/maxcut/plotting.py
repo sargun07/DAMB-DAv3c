@@ -35,7 +35,8 @@ def save_figure(fig, filename):
 
         fig.savefig(
             cfg.FIGURE_DIR / filename,
-            bbox_inches="tight"
+            bbox_inches="tight",
+            pad_inches=0.15
         )
 
 
@@ -124,6 +125,7 @@ def plot_win_tie_loss_with_float_hatch(
         if total == 0:
             continue
 
+        
         if use_category_loss_labels:
             current_loss_label = cfg.HEURISTIC_LABEL_BY_CATEGORY.get(
                 category,
@@ -254,6 +256,228 @@ def plot_win_tie_loss_with_float_hatch(
 
     return fig, ax
 
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+import matplotlib.patheffects as pe
+
+
+def plot_combined_wtl_by_weight_type(
+    pivot_df,
+    save_name=None,
+    figsize=(13, 15),
+):
+    """
+    Two vertically stacked panels:
+        Top: Integer-weighted instances
+        Bottom: Non-integer-weighted instances
+
+    Three horizontal bars per size-density category:
+        DAv2, DAv3, DAv3c vs. MQLib heuristic
+
+    Expected columns:
+        category, weight_type, solver, loss, tie, win
+    """
+
+    set_plot_style()
+
+    solvers = ["DAv2", "DAv3", "DAv3c"]
+    outcomes = ["loss", "tie", "win"]
+
+    colors = {
+        outcome: cfg.BENCHMARK_COLORS[outcome]
+        for outcome in outcomes
+    }
+
+    categories = [
+        category
+        for category in cfg.CATEGORY_ORDER
+        if category in pivot_df["category"].unique()
+        and category not in [
+            "xsmall_sparse",
+            "small_sparse",
+            "xlarge_sparse"
+        ]
+    ]
+
+    panels = [
+        ("integer", "Integer-weighted instances"),
+        ("float", "Non-integer-weighted instances")
+    ]
+
+    fig, axes = plt.subplots(
+        2, 1,
+        figsize=figsize,
+        sharex=True
+    )
+
+    bar_height = 0.72
+    group_gap = 1.1
+
+    for ax, (weight_type, panel_title) in zip(axes, panels):
+
+        subset = pivot_df[
+            pivot_df["weight_type"] == weight_type
+        ]
+
+        y_positions = []
+        y_labels = []
+
+        for cat_idx, category in enumerate(categories):
+
+            cat_df = subset[
+                subset["category"] == category
+            ]
+
+            base_y = cat_idx * (len(solvers) + group_gap)
+
+            # Determine number of instances from one solver,
+            # so instances are not counted three times.
+            counts = cat_df[["loss", "tie", "win"]].sum(axis=1)
+            n = int(counts.max()) if not counts.empty else 0
+
+            for solver_idx, solver in enumerate(solvers):
+
+                y = base_y + solver_idx
+
+                row = cat_df[
+                    cat_df["solver"] == solver
+                ]
+
+                y_positions.append(y)
+                y_labels.append(solver)
+
+                if row.empty:
+                    continue
+
+                row = row.iloc[0]
+
+                total = sum(row[outcome] for outcome in outcomes)
+
+                if total == 0:
+                    continue
+
+                left = 0
+
+                for outcome in outcomes:
+
+                    percentage = row[outcome] / total * 100
+
+                    ax.barh(
+                        y,
+                        percentage,
+                        left=left,
+                        height=bar_height,
+                        color=colors[outcome],
+                        edgecolor="white",
+                        linewidth=0.6
+                    )
+
+                    if percentage >= 8:
+                        ax.text(
+                            left + percentage / 2,
+                            y,
+                            f"{percentage:.1f}",
+                            ha="center",
+                            va="center",
+                            fontsize=8,
+                            weight="bold",
+                            path_effects=[
+                                pe.withStroke(
+                                    linewidth=2,
+                                    foreground="white"
+                                )
+                            ]
+                        )
+
+                    left += percentage
+
+            # Category label above its three solver bars
+            category_label = category.replace("_", " ").title()
+
+            ax.text(
+                0,
+                base_y - 0.7,
+                f"{category_label} (n={n})",
+                ha="left",
+                va="center",
+                fontsize=10,
+                weight="bold"
+            )
+
+            if cat_idx < len(categories) - 1:
+                ax.axhline(
+                    base_y + len(solvers) - 0.4,
+                    color="gray",
+                    alpha=0.25,
+                    linewidth=0.6
+                )
+
+        ax.set_yticks(y_positions)
+        ax.set_yticklabels(y_labels, fontsize=9)
+        ax.invert_yaxis()
+
+        # Ensure first category heading is visible
+        ax.set_ylim(
+            len(categories) * (len(solvers) + group_gap) - group_gap,
+            -1.3
+        )
+
+        ax.set_xlim(0, 100)
+
+        ax.set_title(
+            panel_title,
+            fontsize=13,
+            weight="bold",
+            pad=15
+        )
+
+        ax.tick_params(axis="y", length=0)
+
+        ax.grid(
+            axis="x",
+            linestyle=":",
+            alpha=0.2
+        )
+        ax.set_axisbelow(True)
+
+    for ax in axes:
+        ax.set_xticks([0, 20, 40, 60, 80, 100])
+        ax.tick_params(axis="x", labelbottom=True)
+
+    axes[-1].set_xlabel("Proportion of instances (%)")
+
+    legend_elements = [
+        mpatches.Patch(
+            facecolor=colors["loss"],
+            label="MQLib heuristic wins"
+        ),
+        mpatches.Patch(
+            facecolor=colors["tie"],
+            label="Tie"
+        ),
+        mpatches.Patch(
+            facecolor=colors["win"],
+            label="DA solver wins"
+        )
+    ]
+
+    fig.legend(
+        handles=legend_elements,
+        loc="lower center",
+        ncol=3,
+        frameon=False,
+        bbox_to_anchor=(0.5, 0.01)
+    )
+
+    plt.tight_layout(rect=[0, 0.04, 1, 1])
+
+    if save_name:
+        save_figure(fig, save_name)
+
+    plt.show()
+
+    return fig, axes
 
 # =========================================================
 # FLOAT / INTEGER STACKED BAR PLOT
@@ -803,34 +1027,73 @@ def plot_cut_ratio_counts(
     return fig, ax
 
 
-def plot_optimality_percentage_per_solver(labels, values, count,file_name):
-    
+def plot_optimality_percentage_per_solver(labels, values, count, file_name):
+
+    label_map = {
+        "PALUBECKIS2004bMST2": "PAL",
+        "BURER2002": "BURER",
+        "MERZ1999GLS": "MERZ"
+    }
+
+    desired_order = [
+        "DAv2",
+        "DAv3",
+        "DAv3c",
+        "BURER2002",
+        "PALUBECKIS2004bMST2",
+        "MERZ1999GLS"
+    ]
+
+    # Pair labels with values
+    data = dict(zip(labels, values))
+
+    # Reorder according to desired order
+    ordered_labels = [
+        solver for solver in desired_order
+        if solver in data
+    ]
+
+    ordered_values = [
+        data[solver] for solver in ordered_labels
+    ]
+
+    # Shorten display names
+    short_labels = [
+        label_map.get(label, label)
+        for label in ordered_labels
+    ]
+
     fig, ax = plt.subplots()
 
     bars = ax.bar(
-        labels,
-        values
+        short_labels,
+        ordered_values
     )
 
     # Add percentage labels on top
-    for bar, val in zip(bars, values):
+    for bar, val in zip(bars, ordered_values):
         height = bar.get_height()
-        plt.text(
+
+        ax.text(
             bar.get_x() + bar.get_width() / 2,
             height,
             f"{val:.1f}%",
-            ha='center',
-            va='bottom'
+            ha="center",
+            va="bottom"
         )
 
-    plt.ylabel("% Optimal (gap = 0)")
-    plt.title(f"Optimality Rate per Solver n=({count})")
+    ax.set_ylabel("% Optimal (gap = 0)")
+    ax.set_title(f"Optimality Rate per Solver n=({count})")
+
     plt.tight_layout()
+
     if file_name:
         save_figure(fig, file_name)
+
     plt.show()
 
     return fig, ax
+    
 
 
 def plot_solver_objective_gaps(
@@ -991,95 +1254,334 @@ def plot_edge_weight_distribution(
         save_figure(fig, file_name)
     plt.show()
 
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+from matplotlib.ticker import LogLocator, LogFormatterMathtext
 
-def plot_n_weights_90_histogram(
+
+def plot_normalized_edge_weight_distribution(
     df,
-    col="n_weights_90",
-    title="Distribution of Dominant Weight Diversity",
-    file_name=None
+    nodes_col="nodes",
+    unique_weights_col="unique_weights",
+    edges_col="edges",
+    int_only_col="int_only",
+    file_name=None,
+    log_y=True
 ):
-    data = df[col].dropna()
+    data = df.copy()
 
-    # Region counts
-    n_concentrated = ((data >= 1) & (data <= 5)).sum()
-    n_transitional = ((data > 5) & (data <= 50)).sum()
-    n_heterogeneous = (data > 50).sum()
-
-    # Use log-spaced bins because highly diverse has very large values
-    bins = np.unique(
-        np.concatenate([
-            np.arange(1, 55, 1),
-            np.logspace(np.log10(55), np.log10(data.max()), 25)
-        ])
+    # Calculate normalized edge-weight diversity
+    data["unique_weight_ratio"] = (
+        data[unique_weights_col] / data[edges_col]
     )
 
-    fig, ax = plt.subplots(figsize=(9, 4.8))
+    # Remove invalid observations
+    data = data[
+        (data[edges_col] > 0)
+        & (data["unique_weight_ratio"] > 0)
+        & (data["unique_weight_ratio"] <= 1)
+    ].copy()
 
-    # Background regions
-    ax.axvspan(1, 5, alpha=0.12, label="Concentrated")
-    ax.axvspan(5, 50, alpha=0.10, label="Transitional")
-    ax.axvspan(50, data.max(), alpha=0.08, label="Heterogeneous")
+    df_int = data[data[int_only_col] == True]
+    df_float = data[data[int_only_col] == False]
 
-    # Histogram
-    ax.hist(data, bins=bins, edgecolor="black", linewidth=0.6)
+    fig, ax = plt.subplots(figsize=(10, 6))
 
-    # Boundary lines
-    ax.axvline(5, linestyle=":", linewidth=2)
-    ax.axvline(50, linestyle=":", linewidth=2)
-
-    # Log scale for long tail
-    ax.set_xscale("log")
-
-    # Labels
-    ax.set_xlabel(r"$n_{\mathrm{weights},90}$")
-    ax.set_ylabel("Number of instances")
-    ax.set_title(title)
-
-    # Smart count labels
-    ymax = ax.get_ylim()[1]
-       
-    ax.text(
-        5,
-        ymax * 0.98,
-        "5",
-        ha="right",
-        va="top",
-        fontsize=10
+    # Integer-weighted instances
+    ax.scatter(
+        df_int[nodes_col],
+        df_int["unique_weight_ratio"],
+        marker=".",
+        alpha=0.35,
+        color="blue",
+        label="Integer instances",
+        rasterized=True
     )
 
-    ax.text(
-        50,
-        ymax * 0.98,
-        "50",
-        ha="right",
-        va="top",
-        fontsize=10
+    # Non-integer-weighted instances
+    ax.scatter(
+        df_float[nodes_col],
+        df_float["unique_weight_ratio"],
+        marker=".",
+        alpha=0.25,
+        color="red",
+        label="Non-integer instances",
+        rasterized=True
     )
 
-    ax.text(
-        2.2, ymax * 0.88,
-        f"Concentrated\n1–5\nn = {n_concentrated}",
-        ha="center", va="top", fontsize=10
+    # Vertex boundaries
+    ax.axvline(
+        4096, linestyle="--", color="gray", alpha=0.4
+    )
+    ax.axvline(
+        8192, linestyle="--", color="gray", alpha=0.4
     )
 
-    ax.text(
-        16, ymax * 0.88,
-        f"Transitional\n6–50\nn = {n_transitional}",
-        ha="center", va="top", fontsize=10
+    ax.set_xlabel("Number of vertices")
+    ax.set_ylabel("Unique-weight ratio (# unique weights / # edges)")
+
+    if log_y:
+        ax.set_yscale("log")
+        ax.yaxis.set_major_locator(
+            LogLocator(base=10.0)
+        )
+        ax.yaxis.set_major_formatter(
+            LogFormatterMathtext()
+        )
+    else:
+        ax.set_ylim(0, 1.02)
+
+    ax.legend(
+        loc="best",
+        frameon=False
     )
 
-    ax.text(
-        300, ymax * 0.88,
-        f"Heterogeneous\n>50\nn = {n_heterogeneous}",
-        ha="center", va="top", fontsize=10
+    ax.grid(
+        alpha=0.15,
+        linestyle=":"
     )
-
-    ax.grid(axis="y", alpha=0.25)
 
     plt.tight_layout()
 
+    if file_name:
+        save_figure(fig, file_name)
+
+    plt.show()
+
+    return data
+
+def plot_weight_diversity_boxplot(
+    df,
+    ratio_col="unique_weight_ratio",
+    int_only_col="int_only",
+    file_name=None
+):
+
+    df_int = df.loc[
+        df[int_only_col] == True, ratio_col
+    ].dropna()
+
+    df_float = df.loc[
+        df[int_only_col] == False, ratio_col
+    ].dropna()
+
+    fig, ax = plt.subplots(figsize=(7, 5))
+
+    bp = ax.boxplot(
+        [df_int, df_float],
+        tick_labels=[
+            f"Integer (n={len(df_int)})",
+            f"Non-integer (n={len(df_float)})"
+        ],
+        patch_artist=True,
+        showfliers=True
+    )
+
+    for patch, color in zip(
+        bp["boxes"], ["blue", "red"]
+    ):
+        patch.set_facecolor(color)
+        patch.set_alpha(0.25)
+
+    ax.set_ylabel("Unique-weight ratio")
+    ax.set_yscale("log")
+
+    ax.grid(axis="y", linestyle=":", alpha=0.2)
+
+    plt.tight_layout()
+
+    if file_name:
+        save_figure(fig, file_name)
+
+    plt.show()
+
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
+
+
+def plot_n_weights_90_histogram(
+    df,
+    col="concentration_group",
+    title="Distribution of Dominant Weight Diversity",
+    file_name=None
+):
+    
+
+    # Filter by categorical labels, then extract numerical values
+    value_col = "n90"
+
+    concentrated = df.loc[
+        df[col] == "Concentrated", value_col
+    ].dropna()
+
+    transitional = df.loc[
+        df[col] == "Transitional", value_col
+    ].dropna()
+
+    heterogeneous = df.loc[
+        df[col] == "Heterogeneous", value_col
+    ].dropna()
+
+    groups = [
+        ("Concentrated", concentrated),
+        ("Transitional", transitional),
+        ("Heterogeneous", heterogeneous)
+    ]
+
+    fig, axes = plt.subplots(
+        1, 3,
+        figsize=(14, 5.5),
+        sharey=True,
+        layout="constrained",
+        gridspec_kw={
+            "width_ratios": [1, 2, 2.5]
+        }
+    )
+
+    colors = ["#4f8baf", "#5c9e8b", "#b99359"]
+
+    # ------------------------------------------------
+    # Concentrated: exact counts for values 1–5
+    # ------------------------------------------------
+    ax = axes[0]
+
+    counts = concentrated.value_counts().reindex(
+        range(1, 6), fill_value=0
+    )
+
+    ax.bar(
+        counts.index,
+        counts.values,
+        width=0.8,
+        color=colors[0],
+        edgecolor="black",
+        linewidth=0.5
+    )
+
+    ax.set_xticks(range(1, 6))
+    ax.set_xlim(0.5, 5.5)
+
+    ax.set_title(
+        f"Concentrated (1–5)\nN = {len(concentrated)}",
+        fontsize=11
+    )
+
+    # ------------------------------------------------
+    # Transitional: exact counts for values 6–50
+    # ------------------------------------------------
+    ax = axes[1]
+
+    counts = transitional.value_counts().reindex(
+        range(6, 51), fill_value=0
+    )
+
+    ax.bar(
+        counts.index,
+        counts.values,
+        width=0.85,
+        color=colors[1],
+        edgecolor="black",
+        linewidth=0.4
+    )
+
+    ax.set_xlim(5.5, 50.5)
+    ax.set_xticks([6, 10, 20, 30, 40, 50])
+
+    ax.set_title(
+        f"Transitional (6–50)\nN = {len(transitional)}",
+        fontsize=11
+    )
+
+    # ------------------------------------------------
+    # Heterogeneous: grouped intervals above 50
+    # ------------------------------------------------
+    ax = axes[2]
+
+    if len(heterogeneous) > 0:
+
+        # Create log-spaced bins
+        lower = 51
+        upper = int(heterogeneous.max())
+
+        if upper == lower:
+            bins = np.array([51, 52])
+        else:
+            bins = np.unique(
+                np.rint(
+                    np.geomspace(
+                        lower,
+                        upper + 1,
+                        9
+                    )
+                ).astype(int)
+            )
+
+        hist_counts, bin_edges = np.histogram(
+            heterogeneous,
+            bins=bins
+        )
+
+        positions = np.arange(len(hist_counts))
+
+        ax.bar(
+            positions,
+            hist_counts,
+            width=0.85,
+            color=colors[2],
+            edgecolor="black",
+            linewidth=0.5
+        )
+
+        bin_labels = [
+            f"{int(bin_edges[i])}–{int(bin_edges[i+1]-1)}"
+            for i in range(len(hist_counts))
+        ]
+
+        ax.set_xticks(positions)
+        ax.set_xticklabels(
+            bin_labels,
+            rotation=50,
+            ha="right",
+            rotation_mode="anchor",
+            fontsize=8
+        )
+
+    ax.set_title(
+        f"Heterogeneous (>50)\nN = {len(heterogeneous)}",
+        fontsize=11
+    )
+
+    # ------------------------------------------------
+    # Shared formatting
+    # ------------------------------------------------
+    # Shared formatting
+    for ax in axes:
+        ax.grid(axis="y", alpha=0.25)
+        ax.set_axisbelow(True)
+        ax.yaxis.set_major_locator(
+            MaxNLocator(integer=True)
+        )
+        ax.tick_params(axis="x", pad=5)
+
+    axes[0].set_ylabel("Number of instances", fontsize=11)
+
+    fig.supxlabel(
+        r"$n_{\mathrm{weights},90}$",
+        fontsize=12
+    )
+
+    fig.suptitle(
+        title,
+        fontsize=13,
+        fontweight="bold"
+    )
+
+    # DO NOT call plt.tight_layout()
+
     if file_name is not None:
         save_figure(fig, file_name)
-        
 
     plt.show()
